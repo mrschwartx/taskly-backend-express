@@ -1,16 +1,16 @@
 services:
-  petstore-mongo:
+  taskly-mongo:
     image: mongo:8.0
-    container_name: petstore-mongo
+    container_name: taskly-mongo
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: dev_user
       MONGO_INITDB_ROOT_PASSWORD: dev_pass
-      MONGO_INITDB_DATABASE: petstore_dev
+      MONGO_INITDB_DATABASE: taskly_dev
     ports:
       - "127.0.0.1:27017:27017"
     volumes:
-      - petstore-mongo-data:/data/db
+      - taskly-mongo-data:/data/db
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 5s
@@ -18,18 +18,18 @@ services:
       retries: 20
       start_period: 10s
 
-  petstore-mongo-express:
+  taskly-mongo-express:
     image: mongo-express:1.0.2
-    container_name: petstore-mongo-express
+    container_name: taskly-mongo-express
     restart: unless-stopped
     environment:
-      ME_CONFIG_MONGODB_URL: mongodb://dev_user:dev_pass@petstore-mongo:27017/?authSource=admin
+      ME_CONFIG_MONGODB_URL: mongodb://dev_user:dev_pass@taskly-mongo:27017/?authSource=admin
       ME_CONFIG_BASICAUTH: "false"
     ports:
       - "127.0.0.1:8081:8081"
     depends_on:
-      petstore-mongo:
+      taskly-mongo:
         condition: service_healthy
 
 volumes:
-  petstore-mongo-data:
+  taskly-mongo-data:

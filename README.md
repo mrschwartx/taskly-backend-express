@@ -1,12 +1,5 @@
-# Petstore Backend
+# Taskly Backend (Express)
 
-## Features
-
-## Run
-
-1. petstore-backend
-
-## Configuration
+##
 
 ## References
-
