@@ -1,10 +1,10 @@
-# SnippetBox Backend
+# Petstore Backend
 
 ## Features
 
 ## Run
 
-1. conduit-backend
+1. petstore-backend
 
 ## Configuration
 

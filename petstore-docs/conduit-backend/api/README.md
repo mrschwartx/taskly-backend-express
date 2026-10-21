@@ -1,4 +1,4 @@
-# RealWorld API Spec
+# Petstore API Spec
 
 ## Running API tests locally
 
