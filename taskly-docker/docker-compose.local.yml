@@ -6,6 +6,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: "${MONGO_USER:-taskly}"
       MONGO_INITDB_ROOT_PASSWORD: "${MONGO_PASSWORD:?MONGO_PASSWORD is required}"
+      GLIBC_TUNABLES: glibc.pthread.rseq=1
     volumes:
       - taskly-mongo-data:/data/db
     security_opt:

@@ -154,6 +154,7 @@ Integration and e2e tests use `TEST_MONGO_URI` when set. Otherwise they download
 ## Limits
 
 - The API needs a running MongoDB.
+- MongoDB 8.x refuses to start on Linux kernels 6.19 to 7.0.13. The Compose files and CI set `GLIBC_TUNABLES=glibc.pthread.rseq=1` on the MongoDB container as a workaround; it is not needed on other kernels.
 - Uploaded avatars are stored on local disk and served from `/images/users`.
 - Events are delivered in-process, so the app runs as a single instance.
 

@@ -39,6 +39,8 @@ jobs:
     services:
       mongo:
         image: mongo:8.0
+        env:
+          GLIBC_TUNABLES: glibc.pthread.rseq=1
         ports:
           - 27017:27017
         options: >-
@@ -79,6 +81,8 @@ jobs:
     services:
       mongo:
         image: mongo:8.0
+        env:
+          GLIBC_TUNABLES: glibc.pthread.rseq=1
         ports:
           - 27017:27017
         options: >-
