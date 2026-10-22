@@ -144,7 +144,10 @@ jobs:
       - name: Show logs on failure
         if: failure()
         working-directory: taskly-docker
-        run: docker compose -f docker-compose.local.yml logs --no-color
+        run: |
+          docker compose -f docker-compose.local.yml ps -a
+          docker inspect --format '{{json .State.Health}}' taskly-backend
+          docker compose -f docker-compose.local.yml logs --no-color
       - name: Stop stack
         if: always()
         working-directory: taskly-docker
