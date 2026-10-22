@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.*
+!.env.example
+logs/
+*.log
+coverage/
+public/images/users/avatar-*
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

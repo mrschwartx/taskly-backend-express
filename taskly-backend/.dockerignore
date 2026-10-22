@@ -1,0 +1,15 @@
+node_modules
+npm-debug.log
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+logs
+coverage
+test
+eslint.config.js
+.prettierrc.json
+.prettierignore
+public/images/users/avatar-*
+Dockerfile*

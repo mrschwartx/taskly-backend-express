@@ -1,0 +1,36 @@
+import { User } from '../../src/modules/users/domain/user.js';
+import { Email } from '../../src/modules/users/domain/value-objects/email.js';
+import { Username } from '../../src/modules/users/domain/value-objects/username.js';
+import { Task } from '../../src/modules/tasks/domain/task.js';
+import { DueDate } from '../../src/modules/tasks/domain/value-objects/due-date.js';
+import { TaskDescription } from '../../src/modules/tasks/domain/value-objects/task-description.js';
+import { TaskName } from '../../src/modules/tasks/domain/value-objects/task-name.js';
+import { TaskPriority } from '../../src/modules/tasks/domain/value-objects/task-priority.js';
+import { TaskStatus } from '../../src/modules/tasks/domain/value-objects/task-status.js';
+
+export const USER_ID = 'aaaaaaaaaaaaaaaaaaaaaaaa';
+export const OTHER_USER_ID = 'bbbbbbbbbbbbbbbbbbbbbbbb';
+export const TASK_ID = 'cccccccccccccccccccccccc';
+
+export const buildUser = (overrides = {}) =>
+  User.register({
+    id: USER_ID,
+    username: Username.create('johndoe123'),
+    email: Email.create('johndoe123@mail.com'),
+    passwordHash: 'hashed:password123',
+    now: new Date('2026-01-01T00:00:00.000Z'),
+    ...overrides,
+  });
+
+export const buildTask = (overrides = {}) =>
+  Task.create({
+    id: TASK_ID,
+    ownerId: USER_ID,
+    name: TaskName.create('Read Atomic Habits'),
+    description: TaskDescription.create('Finish the book'),
+    priority: TaskPriority.create('not urgent'),
+    due: DueDate.create('2026-12-08T10:00:00Z'),
+    status: TaskStatus.create('open'),
+    now: new Date('2026-01-01T00:00:00.000Z'),
+    ...overrides,
+  });
