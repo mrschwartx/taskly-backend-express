@@ -30,7 +30,7 @@ jobs:
           configFile: .commitlintrc.json
 
   taskly-quality:
-    name: Taskly lint and format
+    name: Taskly code quality
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -51,8 +51,9 @@ jobs:
         run: npm run format:check
 
   taskly-test:
-    name: Taskly tests
+    name: Taskly code tests
     runs-on: ubuntu-latest
+    needs: [taskly-quality]
     timeout-minutes: 20
     defaults:
       run:
@@ -92,7 +93,7 @@ jobs:
   taskly-docker:
     name: Taskly docker container
     runs-on: ubuntu-latest
-    needs: [taskly-quality, taskly-test]
+    needs: [taskly-test]
     timeout-minutes: 15
     defaults:
       run:

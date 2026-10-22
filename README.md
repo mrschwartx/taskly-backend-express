@@ -1,4 +1,4 @@
-# Taskly (Express)
+# Taskly Backend (Express)
 
 A task manager backend: sign up and sign in, manage your profile and avatar, and create, filter, sort and paginate to-do tasks. It is a REST API built with Express 5 and PostgreSQL, organised as a modular monolith with Domain-Driven Design and Clean Architecture.
 
