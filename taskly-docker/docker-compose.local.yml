@@ -1,26 +1,30 @@
 services:
   taskly-mongo:
     image: mongo:8.0
+    container_name: taskly-mongo
     restart: unless-stopped
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-taskly}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?MONGO_PASSWORD is required}
+      MONGO_INITDB_ROOT_USERNAME: "${MONGO_USER:-taskly}"
+      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_PASSWORD:?MONGO_PASSWORD is required}"
     volumes:
       - taskly-mongo-data:/data/db
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 5s
       timeout: 5s
-      retries: 20
       start_period: 10s
+      retries: 20
     networks:
       - taskly
-      
+
   taskly-backend:
     build:
-      context: ../taskly-backend-express
-      dockerfile: ../taskly-docker/taskly-backend-express/Dockerfile
-    image: taskly-backend-express:local
+      context: ../taskly-backend
+      dockerfile: ../taskly-docker/taskly-backend/Dockerfile
+    image: taskly-backend:local
+    container_name: taskly-backend
     restart: unless-stopped
     init: true
     depends_on:
@@ -29,18 +33,18 @@ services:
     environment:
       APP_NAME: taskly-api
       APP_HOST: 0.0.0.0
-      APP_PORT: "8000"
-      APP_LEVEL: ${APP_LEVEL:-development}
-      CLIENT_URL: ${CLIENT_URL:-http://localhost:3000}
-      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
-      MONGO_URI: mongodb://${MONGO_USER:-taskly}:${MONGO_PASSWORD:?MONGO_PASSWORD is required}@taskly-mongo:27017/?authSource=admin
-      MONGO_DB: ${MONGO_DB:-taskly}
+      APP_PORT: "8080"
+      APP_LEVEL: "${APP_LEVEL:-development}"
+      CLIENT_URL: "${CLIENT_URL:-http://localhost:3000}"
+      COOKIE_DOMAIN: "${COOKIE_DOMAIN:-}"
+      MONGO_URI: "mongodb://${MONGO_USER:-taskly}:${MONGO_PASSWORD:?MONGO_PASSWORD is required}@taskly-mongo:27017/?authSource=admin"
+      MONGO_DB: "${MONGO_DB:-taskly}"
       MONGO_TIMEOUT: "20000"
-      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET is required}
-      LOG_LEVEL: ${LOG_LEVEL:-info}
+      AUTH_SECRET: "${AUTH_SECRET:?AUTH_SECRET is required}"
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
       LOG_TO_FILE: "false"
     ports:
-      - "127.0.0.1:${APP_PORT:-8000}:8000"
+      - "${PORT:-8080}:8080"
     volumes:
       - taskly-avatars:/app/public/images/users
     read_only: true
@@ -50,6 +54,12 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
     networks:
       - taskly
 

@@ -12,7 +12,7 @@ describe('loadConfig', () => {
 
     assert.equal(config.app.name, 'taskly-api');
     assert.equal(config.app.host, '0.0.0.0');
-    assert.equal(config.app.port, 8000);
+    assert.equal(config.app.port, 8080);
     assert.equal(config.app.isProduction, false);
     assert.equal(config.mongo.db, 'taskly');
     assert.equal(config.mongo.timeoutMs, 30000);
@@ -46,7 +46,7 @@ describe('loadConfig', () => {
 
   it('falls back to defaults for invalid numbers', () => {
     const config = loadConfig(buildTestEnv({ APP_PORT: 'abc' }));
-    assert.equal(config.app.port, 8000);
+    assert.equal(config.app.port, 8080);
   });
 
   it('treats an empty cookie domain as unset', () => {

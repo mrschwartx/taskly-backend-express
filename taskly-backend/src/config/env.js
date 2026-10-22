@@ -39,7 +39,7 @@ export const loadConfig = (env = process.env) => {
     app: Object.freeze({
       name: env.APP_NAME ?? 'taskly-api',
       host: env.APP_HOST ?? '0.0.0.0',
-      port: toInteger(env.APP_PORT, 8000),
+      port: toInteger(env.APP_PORT, 8080),
       level,
       isProduction,
     }),

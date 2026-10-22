@@ -1,8 +1,8 @@
 {
     "folders": [
         {
-            "name": "taskly-backend-express",
-            "path": "taskly-backend-express"
+            "name": "taskly-backend",
+            "path": "taskly-backend"
         },
         {
             "name": "taskly-docker",
