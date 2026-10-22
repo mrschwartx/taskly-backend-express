@@ -30,7 +30,7 @@ describe('JwtTokenService', () => {
     const token = service.issue({ userId: USER_ID });
     const [header, , signature] = token.split('.');
     const body = Buffer.from(
-      JSON.stringify({ id: 'ffffffffffffffffffffffff' })
+      JSON.stringify({ id: 'ffffffff-ffff-ffff-ffff-ffffffffffff' })
     ).toString('base64url');
     assert.throws(() => service.verify(`${header}.${body}.${signature}`));
   });

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
-import { startTestMongo } from '../support/mongo.js';
+import { startTestDatabase } from '../support/postgres.js';
 import {
   findFreePort,
   runNodeScript,
@@ -9,19 +9,19 @@ import {
 import { buildTestEnv } from '../support/test-config.js';
 
 describe('e2e: operating the service', () => {
-  let mongo;
+  let database;
 
   before(async () => {
-    mongo = await startTestMongo();
+    database = await startTestDatabase();
   });
 
   after(async () => {
-    await mongo.stop();
+    await database.stop();
   });
 
   it('refuses to start without a valid AUTH_SECRET', async () => {
     const env = buildTestEnv({
-      MONGO_URI: mongo.uri,
+      DATABASE_URL: database.url,
       APP_PORT: String(await findFreePort()),
       AUTH_SECRET: 'too-short',
     });
@@ -32,22 +32,22 @@ describe('e2e: operating the service', () => {
     assert.match(result.stderr, /AUTH_SECRET must be at least 32 characters/);
   });
 
-  it('refuses to start without MONGO_URI', async () => {
+  it('refuses to start without DATABASE_URL', async () => {
     const env = {
       ...buildTestEnv({ APP_PORT: String(await findFreePort()) }),
-      MONGO_URI: '',
+      DATABASE_URL: '',
     };
 
     const result = await runNodeScript('src/main.js', env);
 
     assert.equal(result.code, 1);
-    assert.match(result.stderr, /MONGO_URI/);
+    assert.match(result.stderr, /DATABASE_URL/);
   });
 
-  it('exits with an error when MongoDB is unreachable', async () => {
+  it('exits with an error when PostgreSQL is unreachable', async () => {
     const env = buildTestEnv({
-      MONGO_URI: 'mongodb://127.0.0.1:1',
-      MONGO_TIMEOUT: '500',
+      DATABASE_URL: 'postgres://taskly:taskly@127.0.0.1:1/taskly',
+      DATABASE_TIMEOUT: '500',
       APP_PORT: String(await findFreePort()),
     });
 
@@ -57,10 +57,10 @@ describe('e2e: operating the service', () => {
   });
 
   it('exits with an error when the port is already taken', async () => {
-    const running = await startServerProcess({ mongoUri: mongo.uri });
+    const running = await startServerProcess({ databaseUrl: database.url });
     try {
       const env = buildTestEnv({
-        MONGO_URI: mongo.uri,
+        DATABASE_URL: database.url,
         APP_PORT: String(running.port),
       });
 
@@ -74,7 +74,7 @@ describe('e2e: operating the service', () => {
 
   describe('seeding', () => {
     it('seeds demo users idempotently so they can sign in', async () => {
-      const server = await startServerProcess({ mongoUri: mongo.uri });
+      const server = await startServerProcess({ databaseUrl: database.url });
       try {
         const first = await runNodeScript('src/scripts/seed.js', server.env);
         const second = await runNodeScript('src/scripts/seed.js', server.env);
@@ -103,7 +103,7 @@ describe('e2e: operating the service', () => {
 
     it('refuses to seed a production database', async () => {
       const env = buildTestEnv({
-        MONGO_URI: mongo.uri,
+        DATABASE_URL: database.url,
         APP_LEVEL: 'production',
       });
 

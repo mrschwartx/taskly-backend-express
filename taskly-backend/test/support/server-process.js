@@ -55,11 +55,11 @@ export const runNodeScript = async (
   return { code, stdout: stdout(), stderr: stderr() };
 };
 
-export const startServerProcess = async ({ mongoUri, overrides = {} }) => {
+export const startServerProcess = async ({ databaseUrl, overrides = {} }) => {
   const port = await findFreePort();
   const publicDir = createTempPublicDir();
   const env = buildTestEnv({
-    MONGO_URI: mongoUri,
+    DATABASE_URL: databaseUrl,
     APP_PORT: String(port),
     PUBLIC_DIR: publicDir,
     ...overrides,

@@ -20,7 +20,7 @@ describe('user queries', () => {
     await userRepository.add(buildUser());
     await userRepository.add(
       User.register({
-        id: 'dddddddddddddddddddddddd',
+        id: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
         username: Username.create('jane78'),
         email: Email.create('jane@mail.com'),
         passwordHash: 'hashed:x',
@@ -52,7 +52,7 @@ describe('user queries', () => {
       await assert.rejects(
         () =>
           new GetUser({ userRepository }).execute({
-            userId: 'eeeeeeeeeeeeeeeeeeeeeeee',
+            userId: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
           }),
         (error) =>
           error instanceof NotFoundError && error.message === 'User not found!'

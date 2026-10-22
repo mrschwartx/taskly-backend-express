@@ -99,9 +99,12 @@ describe('task value objects', () => {
   it('DueDate accepts parseable dates only', () => {
     assert.equal(
       DueDate.create('2026-12-08T10:00:00Z').value,
-      '2026-12-08T10:00:00Z'
+      '2026-12-08T10:00:00.000Z'
     );
-    assert.equal(DueDate.create('2026-12-08').value, '2026-12-08');
+    assert.equal(
+      DueDate.create('2026-12-08').value,
+      '2026-12-08T00:00:00.000Z'
+    );
     assert.throws(() => DueDate.create('not a date'), /invalid/);
     assert.throws(() => DueDate.create(undefined), /required/);
     assert.throws(() => DueDate.create(''), /required/);

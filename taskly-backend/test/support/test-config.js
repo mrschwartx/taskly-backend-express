@@ -28,8 +28,7 @@ export const removeDir = (dir) =>
 
 export const buildTestEnv = (overrides = {}) => ({
   AUTH_SECRET: TEST_AUTH_SECRET,
-  MONGO_URI: 'mongodb://127.0.0.1:27017',
-  MONGO_DB: randomDatabaseName(),
+  DATABASE_URL: 'postgres://127.0.0.1:5432/taskly',
   APP_HOST: '127.0.0.1',
   APP_PORT: '0',
   BCRYPT_ROUNDS: '4',

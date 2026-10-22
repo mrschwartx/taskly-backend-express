@@ -1,19 +1,18 @@
 import assert from 'node:assert/strict';
 import { after, before, beforeEach, describe, it } from 'node:test';
-import { ObjectId } from 'mongodb';
-import { MongoUserRepository } from '../../../src/modules/users/infrastructure/mongo-user-repository.js';
 import { User } from '../../../src/modules/users/domain/user.js';
 import { Email } from '../../../src/modules/users/domain/value-objects/email.js';
 import { Username } from '../../../src/modules/users/domain/value-objects/username.js';
+import { PostgresUserRepository } from '../../../src/modules/users/infrastructure/postgres-user-repository.js';
 import { AlreadyExistsError } from '../../../src/shared/domain/errors.js';
-import { MongoConnection } from '../../../src/shared/infrastructure/mongo/mongo-connection.js';
-import { startTestMongo } from '../../support/mongo.js';
-import { randomDatabaseName } from '../../support/test-config.js';
+import { runMigrations } from '../../../src/shared/infrastructure/postgres/migrator.js';
+import { PostgresConnection } from '../../../src/shared/infrastructure/postgres/postgres-connection.js';
+import { startTestDatabase } from '../../support/postgres.js';
 
-describe('MongoUserRepository', () => {
-  let mongo;
+describe('PostgresUserRepository', () => {
+  let database;
   let connection;
-  let db;
+  let pool;
   let repository;
 
   const newUser = (username, email) =>
@@ -25,46 +24,48 @@ describe('MongoUserRepository', () => {
     });
 
   before(async () => {
-    mongo = await startTestMongo();
-    connection = new MongoConnection({
-      uri: mongo.uri,
-      db: randomDatabaseName(),
+    database = await startTestDatabase();
+    connection = new PostgresConnection({
+      url: database.url,
+      poolMax: 4,
       timeoutMs: 5000,
     });
-    db = await connection.connect();
-    repository = new MongoUserRepository({ db });
-    await repository.ensureIndexes();
+    pool = await connection.connect();
+    await runMigrations(pool);
+    repository = new PostgresUserRepository({ pool });
   });
 
   beforeEach(async () => {
-    await db.collection('users').deleteMany({});
+    await pool.query('TRUNCATE users');
   });
 
   after(async () => {
-    await db.dropDatabase();
     await connection.close();
-    await mongo.stop();
+    await database.stop();
   });
 
-  it('generates valid object id strings', () => {
-    assert.match(repository.nextId(), /^[0-9a-f]{24}$/);
+  it('generates unique valid UUIDs', () => {
+    assert.match(
+      repository.nextId(),
+      /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/
+    );
     assert.notEqual(repository.nextId(), repository.nextId());
   });
 
-  it('persists users with the legacy document shape', async () => {
+  it('persists users in typed columns', async () => {
     const user = newUser('johndoe123', 'johndoe123@mail.com');
     await repository.add(user);
 
-    const document = await db
-      .collection('users')
-      .findOne({ _id: new ObjectId(user.id) });
+    const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [
+      user.id,
+    ]);
 
-    assert.equal(document.username, 'johndoe123');
-    assert.equal(document.email, 'johndoe123@mail.com');
-    assert.equal(document.password, 'hash');
-    assert.equal(document.avatar, '/images/users/default-avatar.jpg');
-    assert.equal(typeof document.createdAt, 'string');
-    assert.equal(typeof document.updatedAt, 'string');
+    assert.equal(rows[0].username, 'johndoe123');
+    assert.equal(rows[0].email, 'johndoe123@mail.com');
+    assert.equal(rows[0].password_hash, 'hash');
+    assert.equal(rows[0].avatar, '/images/users/default-avatar.jpg');
+    assert.ok(rows[0].created_at instanceof Date);
+    assert.ok(rows[0].updated_at instanceof Date);
   });
 
   it('finds users by id and by email', async () => {
@@ -80,22 +81,6 @@ describe('MongoUserRepository', () => {
     assert.equal(await repository.findByEmail('ghost@mail.com'), null);
   });
 
-  it('falls back to the default avatar for legacy documents', async () => {
-    const _id = new ObjectId();
-    await db.collection('users').insertOne({
-      _id,
-      username: 'legacy',
-      email: 'legacy@mail.com',
-      password: 'hash',
-      createdAt: '2024-01-01T00:00:00.000Z',
-      updatedAt: '2024-01-01T00:00:00.000Z',
-    });
-
-    const user = await repository.findById(_id.toHexString());
-
-    assert.equal(user.avatar, '/images/users/default-avatar.jpg');
-  });
-
   it('enforces unique emails and usernames', async () => {
     await repository.add(newUser('johndoe123', 'johndoe123@mail.com'));
 
@@ -109,11 +94,24 @@ describe('MongoUserRepository', () => {
     );
   });
 
-  it('creates indexes idempotently', async () => {
-    await assert.doesNotReject(() => repository.ensureIndexes());
-    const names = (await db.collection('users').indexes()).map(
-      (index) => index.name
+  it('applies migrations idempotently', async () => {
+    assert.deepEqual(await runMigrations(pool), []);
+
+    const { rows } = await pool.query(
+      'SELECT name FROM schema_migrations ORDER BY name'
     );
+    assert.deepEqual(
+      rows.map((row) => row.name),
+      ['0001_create_users.sql', '0002_create_tasks.sql']
+    );
+  });
+
+  it('creates unique indexes for email and username', async () => {
+    const { rows } = await pool.query(
+      "SELECT indexname FROM pg_indexes WHERE tablename = 'users'"
+    );
+    const names = rows.map((row) => row.indexname);
+
     assert.ok(names.includes('users_email_unique'));
     assert.ok(names.includes('users_username_unique'));
   });
@@ -172,7 +170,7 @@ describe('MongoUserRepository', () => {
     assert.equal(await repository.existsByEmailOrUsername({}), false);
   });
 
-  it('searches case-insensitively by substring', async () => {
+  it('searches case-insensitively by substring in insertion order', async () => {
     await repository.add(newUser('johndoe123', 'johndoe123@mail.com'));
     await repository.add(newUser('jane78', 'jane@mail.com'));
 
@@ -188,15 +186,24 @@ describe('MongoUserRepository', () => {
       byEmail.map((user) => user.username.value),
       ['jane78']
     );
-    assert.equal(all.length, 2);
+    assert.deepEqual(
+      all.map((user) => user.username.value),
+      ['johndoe123', 'jane78']
+    );
   });
 
-  it('treats regular expression characters literally when searching', async () => {
+  it('treats pattern characters literally when searching', async () => {
     await repository.add(newUser('johndoe123', 'johndoe123@mail.com'));
 
-    assert.equal((await repository.search({ username: '.*' })).length, 0);
-    assert.equal((await repository.search({ username: '(' })).length, 0);
+    for (const term of ['.*', '(', '%', '_', '\\', 'john%']) {
+      assert.equal(
+        (await repository.search({ username: term })).length,
+        0,
+        `username ${term}`
+      );
+    }
     assert.equal((await repository.search({ email: '^john' })).length, 0);
+    assert.equal((await repository.search({ username: 'john_oe' })).length, 0);
   });
 
   it('deletes users and reports whether they existed', async () => {

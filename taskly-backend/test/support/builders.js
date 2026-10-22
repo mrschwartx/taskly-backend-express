@@ -8,9 +8,9 @@ import { TaskName } from '../../src/modules/tasks/domain/value-objects/task-name
 import { TaskPriority } from '../../src/modules/tasks/domain/value-objects/task-priority.js';
 import { TaskStatus } from '../../src/modules/tasks/domain/value-objects/task-status.js';
 
-export const USER_ID = 'aaaaaaaaaaaaaaaaaaaaaaaa';
-export const OTHER_USER_ID = 'bbbbbbbbbbbbbbbbbbbbbbbb';
-export const TASK_ID = 'cccccccccccccccccccccccc';
+export const USER_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+export const OTHER_USER_ID = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+export const TASK_ID = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
 
 export const buildUser = (overrides = {}) =>
   User.register({

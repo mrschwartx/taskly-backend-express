@@ -1,4 +1,4 @@
-import crypto from 'node:crypto';
+import { generateEntityId } from '../../../src/shared/domain/entity-id.js';
 import { AlreadyExistsError } from '../../../src/shared/domain/errors.js';
 import { User } from '../../../src/modules/users/domain/user.js';
 import { UserRepository } from '../../../src/modules/users/domain/user-repository.js';
@@ -7,7 +7,7 @@ export class InMemoryUserRepository extends UserRepository {
   snapshots = new Map();
 
   nextId() {
-    return crypto.randomBytes(12).toString('hex');
+    return generateEntityId();
   }
 
   async add(user) {

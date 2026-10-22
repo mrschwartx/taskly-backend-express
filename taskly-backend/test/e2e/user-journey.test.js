@@ -1,24 +1,24 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 import { createImageForm } from '../support/http-client.js';
-import { startTestMongo } from '../support/mongo.js';
+import { startTestDatabase } from '../support/postgres.js';
 import { startServerProcess } from '../support/server-process.js';
 import { taskPayload } from '../support/test-app.js';
 
 describe('e2e: a full user journey against the real server process', () => {
-  let mongo;
+  let database;
   let server;
 
   before(async () => {
-    mongo = await startTestMongo();
-    server = await startServerProcess({ mongoUri: mongo.uri });
+    database = await startTestDatabase();
+    server = await startServerProcess({ databaseUrl: database.url });
   });
 
   after(async () => {
     if (server) {
       await server.stop();
     }
-    await mongo.stop();
+    await database.stop();
   });
 
   it('lets a person sign up, manage tasks, change profile and leave', async () => {
@@ -179,7 +179,7 @@ describe('e2e: a full user journey against the real server process', () => {
   });
 
   it('shuts down gracefully on SIGTERM', async () => {
-    const instance = await startServerProcess({ mongoUri: mongo.uri });
+    const instance = await startServerProcess({ databaseUrl: database.url });
     const client = instance.createClient();
     assert.equal((await client.get('/')).status, 200);
 

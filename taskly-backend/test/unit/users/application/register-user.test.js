@@ -34,7 +34,7 @@ describe('RegisterUser', () => {
     assert.equal(user.username, 'johndoe123');
     assert.equal(user.email, 'johndoe123@mail.com');
     assert.equal(user.avatar, '/images/users/default-avatar.jpg');
-    assert.match(user._id, /^[0-9a-f]{24}$/);
+    assert.match(user._id, /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/);
     assert.equal(token, `token-for-${user._id}`);
     assert.equal('password' in user, false);
     assert.equal('passwordHash' in user, false);

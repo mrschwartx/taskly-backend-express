@@ -1,16 +1,16 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
-import { startTestMongo } from '../../support/mongo.js';
+import { startTestDatabase } from '../../support/postgres.js';
 import {
   registerUser,
   startTestApp,
   taskPayload,
 } from '../../support/test-app.js';
 
-const MISSING_ID = 'eeeeeeeeeeeeeeeeeeeeeeee';
+const MISSING_ID = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
 
 describe('tasks over HTTP', () => {
-  let mongo;
+  let database;
   let app;
 
   const signedInClient = async () => {
@@ -20,13 +20,13 @@ describe('tasks over HTTP', () => {
   };
 
   before(async () => {
-    mongo = await startTestMongo();
-    app = await startTestApp({ mongoUri: mongo.uri });
+    database = await startTestDatabase();
+    app = await startTestApp({ databaseUrl: database.url });
   });
 
   after(async () => {
     await app.stop();
-    await mongo.stop();
+    await database.stop();
   });
 
   it('requires authentication on every route', async () => {
@@ -52,12 +52,15 @@ describe('tasks over HTTP', () => {
       });
 
       assert.equal(response.status, 200);
-      assert.match(response.body._id, /^[0-9a-f]{24}$/);
+      assert.match(
+        response.body._id,
+        /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/
+      );
       assert.equal(response.body.owner, user._id);
       assert.equal(response.body.name, 'Read Atomic Habits');
       assert.equal(response.body.priority, 'not urgent');
       assert.equal(response.body.status, 'open');
-      assert.equal(response.body.due, '2026-12-08T10:00:00Z');
+      assert.equal(response.body.due, '2026-12-08T10:00:00.000Z');
       assert.equal(response.body.createdAt, response.body.updatedAt);
     });
 

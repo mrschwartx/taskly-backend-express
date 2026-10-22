@@ -5,12 +5,12 @@ import { DeleteTasksByOwner } from './application/use-cases/delete-tasks-by-owne
 import { GetTask } from './application/use-cases/get-task.js';
 import { ListTasksByUser } from './application/use-cases/list-tasks-by-user.js';
 import { UpdateTask } from './application/use-cases/update-task.js';
-import { MongoTaskRepository } from './infrastructure/mongo-task-repository.js';
+import { PostgresTaskRepository } from './infrastructure/postgres-task-repository.js';
 import { createTasksController } from './presentation/http/tasks-controller.js';
 import { createTasksRouter } from './presentation/http/tasks-router.js';
 
-export const createTasksModule = ({ db, eventBus, authenticate }) => {
-  const taskRepository = new MongoTaskRepository({ db });
+export const createTasksModule = ({ pool, eventBus, authenticate }) => {
+  const taskRepository = new PostgresTaskRepository({ pool });
 
   const useCases = {
     createTask: new CreateTask({ taskRepository }),
@@ -30,9 +30,5 @@ export const createTasksModule = ({ db, eventBus, authenticate }) => {
     authenticate,
   });
 
-  return {
-    router,
-    useCases,
-    initialize: () => taskRepository.ensureIndexes(),
-  };
+  return { router, useCases };
 };

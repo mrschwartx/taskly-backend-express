@@ -7,15 +7,15 @@ describe('loadConfig', () => {
   it('applies defaults for optional variables', () => {
     const config = loadConfig({
       AUTH_SECRET: TEST_AUTH_SECRET,
-      MONGO_URI: 'mongodb://localhost:27017',
+      DATABASE_URL: 'postgres://localhost:5432/taskly',
     });
 
     assert.equal(config.app.name, 'taskly-api');
     assert.equal(config.app.host, '0.0.0.0');
     assert.equal(config.app.port, 8080);
     assert.equal(config.app.isProduction, false);
-    assert.equal(config.mongo.db, 'taskly');
-    assert.equal(config.mongo.timeoutMs, 30000);
+    assert.equal(config.database.poolMax, 10);
+    assert.equal(config.database.timeoutMs, 30000);
     assert.equal(config.clientUrl, 'http://localhost:3000');
     assert.equal(config.auth.bcryptRounds, 10);
     assert.equal(config.auth.cookieName, 'taskly_token');
@@ -28,7 +28,8 @@ describe('loadConfig', () => {
       buildTestEnv({
         APP_PORT: '9001',
         APP_LEVEL: 'production',
-        MONGO_TIMEOUT: '1500',
+        DATABASE_TIMEOUT: '1500',
+        DATABASE_POOL_MAX: '5',
         BCRYPT_ROUNDS: '12',
         LOG_TO_FILE: 'yes',
         COOKIE_DOMAIN: '.example.com',
@@ -37,7 +38,8 @@ describe('loadConfig', () => {
 
     assert.equal(config.app.port, 9001);
     assert.equal(config.app.isProduction, true);
-    assert.equal(config.mongo.timeoutMs, 1500);
+    assert.equal(config.database.timeoutMs, 1500);
+    assert.equal(config.database.poolMax, 5);
     assert.equal(config.auth.bcryptRounds, 12);
     assert.equal(config.auth.cookieDomain, '.example.com');
     assert.equal(config.logging.toFile, true);
@@ -65,7 +67,7 @@ describe('loadConfig', () => {
 
   it('throws when AUTH_SECRET is missing', () => {
     assert.throws(
-      () => loadConfig({ MONGO_URI: 'mongodb://localhost' }),
+      () => loadConfig({ DATABASE_URL: 'postgres://localhost/taskly' }),
       /AUTH_SECRET/
     );
   });
@@ -77,10 +79,10 @@ describe('loadConfig', () => {
     );
   });
 
-  it('throws when MONGO_URI is missing', () => {
+  it('throws when DATABASE_URL is missing', () => {
     assert.throws(
       () => loadConfig({ AUTH_SECRET: TEST_AUTH_SECRET }),
-      /MONGO_URI/
+      /DATABASE_URL/
     );
   });
 

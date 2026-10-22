@@ -45,7 +45,7 @@ describe('task use cases', () => {
         input: validInput,
       });
 
-      assert.match(task._id, /^[0-9a-f]{24}$/);
+      assert.match(task._id, /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/);
       assert.equal(task.owner, USER_ID);
       assert.equal(task.name, 'Read Atomic Habits');
       assert.equal(task.status, 'open');
@@ -116,7 +116,7 @@ describe('task use cases', () => {
         () =>
           getTask.execute({
             requesterId: USER_ID,
-            taskId: 'eeeeeeeeeeeeeeeeeeeeeeee',
+            taskId: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
           }),
         (error) =>
           error instanceof NotFoundError && error.message === 'Task not found!'
@@ -138,7 +138,10 @@ describe('task use cases', () => {
         );
       }
       await taskRepository.add(
-        buildTask({ id: 'ffffffffffffffffffffffff', ownerId: OTHER_USER_ID })
+        buildTask({
+          id: 'ffffffff-ffff-ffff-ffff-ffffffffffff',
+          ownerId: OTHER_USER_ID,
+        })
       );
     });
 
@@ -218,7 +221,7 @@ describe('task use cases', () => {
       assert.equal(task.name, 'Updated');
       assert.equal(task.priority, 'urgent');
       assert.equal(task.status, 'in-progress');
-      assert.equal(task.due, '2026-12-08T10:00:00Z');
+      assert.equal(task.due, '2026-12-08T10:00:00.000Z');
       assert.equal(taskRepository.snapshots.get(TASK_ID).name, 'Updated');
     });
 
@@ -227,7 +230,7 @@ describe('task use cases', () => {
         name: 'Updated',
         owner: OTHER_USER_ID,
         ownerId: OTHER_USER_ID,
-        _id: 'ffffffffffffffffffffffff',
+        _id: 'ffffffff-ffff-ffff-ffff-ffffffffffff',
       });
       assert.equal(task.owner, USER_ID);
       assert.equal(task._id, TASK_ID);
@@ -256,7 +259,11 @@ describe('task use cases', () => {
 
     it('fails when the task does not exist', async () => {
       await assert.rejects(
-        () => update({ name: 'x' }, { taskId: 'eeeeeeeeeeeeeeeeeeeeeeee' }),
+        () =>
+          update(
+            { name: 'x' },
+            { taskId: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' }
+          ),
         NotFoundError
       );
     });
@@ -290,7 +297,7 @@ describe('task use cases', () => {
         () =>
           new DeleteTask({ taskRepository }).execute({
             requesterId: USER_ID,
-            taskId: 'eeeeeeeeeeeeeeeeeeeeeeee',
+            taskId: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
           }),
         NotFoundError
       );
@@ -300,7 +307,10 @@ describe('task use cases', () => {
   describe('DeleteTasksByOwner', () => {
     it('removes every task of the owner and nothing else', async () => {
       await taskRepository.add(
-        buildTask({ id: 'ffffffffffffffffffffffff', ownerId: OTHER_USER_ID })
+        buildTask({
+          id: 'ffffffff-ffff-ffff-ffff-ffffffffffff',
+          ownerId: OTHER_USER_ID,
+        })
       );
 
       const deleted = await new DeleteTasksByOwner({ taskRepository }).execute({
@@ -310,7 +320,7 @@ describe('task use cases', () => {
       assert.equal(deleted, 1);
       assert.deepEqual(
         [...taskRepository.snapshots.keys()],
-        ['ffffffffffffffffffffffff']
+        ['ffffffff-ffff-ffff-ffff-ffffffffffff']
       );
     });
 

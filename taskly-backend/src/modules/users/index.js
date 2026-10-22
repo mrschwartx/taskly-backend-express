@@ -9,7 +9,7 @@ import { VerifyAccessToken } from './application/use-cases/verify-access-token.j
 import { BcryptPasswordHasher } from './infrastructure/bcrypt-password-hasher.js';
 import { JwtTokenService } from './infrastructure/jwt-token-service.js';
 import { LocalAvatarStorage } from './infrastructure/local-avatar-storage.js';
-import { MongoUserRepository } from './infrastructure/mongo-user-repository.js';
+import { PostgresUserRepository } from './infrastructure/postgres-user-repository.js';
 import { createAuthController } from './presentation/http/auth-controller.js';
 import { createAuthCookie } from './presentation/http/auth-cookie.js';
 import { createAuthRouter } from './presentation/http/auth-router.js';
@@ -18,8 +18,8 @@ import { createAvatarUpload } from './presentation/http/avatar-upload.js';
 import { createUsersController } from './presentation/http/users-controller.js';
 import { createUsersRouter } from './presentation/http/users-router.js';
 
-export const createUsersModule = ({ db, config, logger, eventBus }) => {
-  const userRepository = new MongoUserRepository({ db });
+export const createUsersModule = ({ pool, config, logger, eventBus }) => {
+  const userRepository = new PostgresUserRepository({ pool });
   const passwordHasher = new BcryptPasswordHasher({
     rounds: config.auth.bcryptRounds,
   });
@@ -82,6 +82,5 @@ export const createUsersModule = ({ db, config, logger, eventBus }) => {
     usersRouter,
     authenticate,
     useCases,
-    initialize: () => userRepository.ensureIndexes(),
   };
 };

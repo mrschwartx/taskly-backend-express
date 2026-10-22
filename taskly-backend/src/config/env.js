@@ -44,10 +44,10 @@ export const loadConfig = (env = process.env) => {
       isProduction,
     }),
     clientUrl: env.CLIENT_URL ?? 'http://localhost:3000',
-    mongo: Object.freeze({
-      uri: requireValue(env, 'MONGO_URI'),
-      db: env.MONGO_DB ?? 'taskly',
-      timeoutMs: toInteger(env.MONGO_TIMEOUT, 30000),
+    database: Object.freeze({
+      url: requireValue(env, 'DATABASE_URL'),
+      poolMax: toInteger(env.DATABASE_POOL_MAX, 10),
+      timeoutMs: toInteger(env.DATABASE_TIMEOUT, 30000),
     }),
     auth: Object.freeze({
       secret,

@@ -7,10 +7,10 @@ import {
   removeDir,
 } from './test-config.js';
 
-export const startTestApp = async ({ mongoUri, overrides = {} }) => {
+export const startTestApp = async ({ databaseUrl, overrides = {} }) => {
   const publicDir = createTempPublicDir();
   const config = createTestConfig({
-    MONGO_URI: mongoUri,
+    DATABASE_URL: databaseUrl,
     PUBLIC_DIR: publicDir,
     ...overrides,
   });

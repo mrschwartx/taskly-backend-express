@@ -1,4 +1,4 @@
-import crypto from 'node:crypto';
+import { generateEntityId } from '../../../src/shared/domain/entity-id.js';
 import { Task } from '../../../src/modules/tasks/domain/task.js';
 import { TaskRepository } from '../../../src/modules/tasks/domain/task-repository.js';
 
@@ -6,7 +6,7 @@ export class InMemoryTaskRepository extends TaskRepository {
   snapshots = new Map();
 
   nextId() {
-    return crypto.randomBytes(12).toString('hex');
+    return generateEntityId();
   }
 
   async add(task) {

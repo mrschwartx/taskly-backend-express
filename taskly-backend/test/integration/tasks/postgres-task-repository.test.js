@@ -1,62 +1,69 @@
 import assert from 'node:assert/strict';
 import { after, before, beforeEach, describe, it } from 'node:test';
-import { ObjectId } from 'mongodb';
-import { MongoTaskRepository } from '../../../src/modules/tasks/infrastructure/mongo-task-repository.js';
-import { MongoConnection } from '../../../src/shared/infrastructure/mongo/mongo-connection.js';
-import { buildTask } from '../../support/builders.js';
-import { startTestMongo } from '../../support/mongo.js';
-import { randomDatabaseName } from '../../support/test-config.js';
 import { DueDate } from '../../../src/modules/tasks/domain/value-objects/due-date.js';
 import { TaskName } from '../../../src/modules/tasks/domain/value-objects/task-name.js';
 import { TaskStatus } from '../../../src/modules/tasks/domain/value-objects/task-status.js';
+import { PostgresTaskRepository } from '../../../src/modules/tasks/infrastructure/postgres-task-repository.js';
+import { generateEntityId } from '../../../src/shared/domain/entity-id.js';
+import { runMigrations } from '../../../src/shared/infrastructure/postgres/migrator.js';
+import { PostgresConnection } from '../../../src/shared/infrastructure/postgres/postgres-connection.js';
+import { buildTask } from '../../support/builders.js';
+import { startTestDatabase } from '../../support/postgres.js';
 
-describe('MongoTaskRepository', () => {
-  let mongo;
+describe('PostgresTaskRepository', () => {
+  let database;
   let connection;
-  let db;
+  let pool;
   let repository;
 
-  const ownerA = new ObjectId().toHexString();
-  const ownerB = new ObjectId().toHexString();
+  const ownerA = generateEntityId();
+  const ownerB = generateEntityId();
 
   const newTask = (overrides = {}) =>
     buildTask({ id: repository.nextId(), ownerId: ownerA, ...overrides });
 
   before(async () => {
-    mongo = await startTestMongo();
-    connection = new MongoConnection({
-      uri: mongo.uri,
-      db: randomDatabaseName(),
+    database = await startTestDatabase();
+    connection = new PostgresConnection({
+      url: database.url,
+      poolMax: 4,
       timeoutMs: 5000,
     });
-    db = await connection.connect();
-    repository = new MongoTaskRepository({ db });
-    await repository.ensureIndexes();
+    pool = await connection.connect();
+    await runMigrations(pool);
+    repository = new PostgresTaskRepository({ pool });
   });
 
   beforeEach(async () => {
-    await db.collection('tasks').deleteMany({});
+    await pool.query('TRUNCATE tasks');
   });
 
   after(async () => {
-    await db.dropDatabase();
     await connection.close();
-    await mongo.stop();
+    await database.stop();
   });
 
-  it('persists tasks with the legacy document shape', async () => {
+  it('generates unique valid UUIDs', () => {
+    assert.match(
+      repository.nextId(),
+      /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/
+    );
+    assert.notEqual(repository.nextId(), repository.nextId());
+  });
+
+  it('persists tasks in typed columns', async () => {
     const task = newTask();
     await repository.add(task);
 
-    const document = await db
-      .collection('tasks')
-      .findOne({ _id: new ObjectId(task.id) });
+    const { rows } = await pool.query('SELECT * FROM tasks WHERE id = $1', [
+      task.id,
+    ]);
 
-    assert.ok(document.owner instanceof ObjectId);
-    assert.equal(document.owner.toHexString(), ownerA);
-    assert.equal(document.name, 'Read Atomic Habits');
-    assert.equal(document.status, 'open');
-    assert.equal(typeof document.createdAt, 'string');
+    assert.equal(rows[0].owner_id, ownerA);
+    assert.equal(rows[0].name, 'Read Atomic Habits');
+    assert.equal(rows[0].status, 'open');
+    assert.ok(rows[0].due instanceof Date);
+    assert.ok(rows[0].created_at instanceof Date);
   });
 
   it('finds tasks by id', async () => {
@@ -96,6 +103,26 @@ describe('MongoTaskRepository', () => {
     assert.ok(result.tasks.every((task) => task.ownerId === ownerA));
   });
 
+  it('returns tasks in insertion order by default', async () => {
+    const created = [];
+    for (let index = 0; index < 4; index += 1) {
+      const task = newTask();
+      created.push(task.id);
+      await repository.add(task);
+    }
+
+    const result = await repository.findByOwner({
+      ownerId: ownerA,
+      page: 1,
+      pageSize: 10,
+    });
+
+    assert.deepEqual(
+      result.tasks.map((task) => task.id),
+      created
+    );
+  });
+
   it('paginates with stable ordering', async () => {
     for (let index = 0; index < 5; index += 1) {
       await repository.add(newTask());
@@ -116,6 +143,11 @@ describe('MongoTaskRepository', () => {
       page: 3,
       pageSize: 2,
     });
+    const beyond = await repository.findByOwner({
+      ownerId: ownerA,
+      page: 4,
+      pageSize: 2,
+    });
 
     const ids = [...first.tasks, ...second.tasks, ...third.tasks].map(
       (task) => task.id
@@ -123,6 +155,8 @@ describe('MongoTaskRepository', () => {
     assert.equal(first.total, 5);
     assert.equal(third.tasks.length, 1);
     assert.equal(new Set(ids).size, 5);
+    assert.equal(beyond.tasks.length, 0);
+    assert.equal(beyond.total, 5);
   });
 
   it('filters by status', async () => {
@@ -158,9 +192,12 @@ describe('MongoTaskRepository', () => {
     );
   });
 
-  it('sorts by due date', async () => {
+  it('sorts by due date chronologically', async () => {
     await repository.add(newTask({ due: DueDate.create('2026-03-01') }));
     await repository.add(newTask({ due: DueDate.create('2026-01-01') }));
+    await repository.add(
+      newTask({ due: DueDate.create('2026-02-01T00:00:00+07:00') })
+    );
 
     const result = await repository.findByOwner({
       ownerId: ownerA,
@@ -171,8 +208,45 @@ describe('MongoTaskRepository', () => {
 
     assert.deepEqual(
       result.tasks.map((task) => task.due.value),
-      ['2026-01-01', '2026-03-01']
+      [
+        '2026-01-01T00:00:00.000Z',
+        '2026-01-31T17:00:00.000Z',
+        '2026-03-01T00:00:00.000Z',
+      ]
     );
+  });
+
+  it('sorts by camelCase fields mapped to columns', async () => {
+    const first = newTask();
+    await repository.add(first);
+    const second = newTask();
+    await repository.add(second);
+
+    const result = await repository.findByOwner({
+      ownerId: ownerA,
+      orderBy: 'createdAt',
+      page: 1,
+      pageSize: 10,
+    });
+
+    assert.deepEqual(
+      result.tasks.map((task) => task.id),
+      [first.id, second.id]
+    );
+  });
+
+  it('ignores unknown sort fields instead of building unsafe SQL', async () => {
+    await repository.add(newTask());
+
+    const result = await repository.findByOwner({
+      ownerId: ownerA,
+      orderBy: 'name; DROP TABLE tasks',
+      page: 1,
+      pageSize: 10,
+    });
+
+    assert.equal(result.total, 1);
+    assert.equal((await pool.query('SELECT 1 FROM tasks')).rowCount, 1);
   });
 
   it('deletes single tasks', async () => {

@@ -1,24 +1,19 @@
 services:
-  taskly-mongo:
-    image: mongo:8.0
-    container_name: taskly-mongo
+  taskly-postgres:
+    image: postgres:18.3
+    container_name: taskly-postgres
     restart: unless-stopped
     environment:
-      MONGO_INITDB_ROOT_USERNAME: "${MONGO_USER:-taskly}"
-      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_PASSWORD:?MONGO_PASSWORD is required}"
-      GLIBC_TUNABLES: glibc.pthread.rseq=1
+      POSTGRES_DB: ${DB_NAME:-taskly}
+      POSTGRES_USER: ${DB_USER:-taskly}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required, run make docker/env}
     volumes:
-      - taskly-mongo-data:/data/db
-    security_opt:
-      - no-new-privileges:true
+      - taskly-postgres-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
-      start_period: 10s
       retries: 20
-    networks:
-      - taskly
 
   taskly-backend:
     build:
@@ -27,46 +22,21 @@ services:
     image: taskly-backend:local
     container_name: taskly-backend
     restart: unless-stopped
-    init: true
-    depends_on:
-      taskly-mongo:
-        condition: service_healthy
     environment:
-      APP_NAME: taskly-api
-      APP_HOST: 0.0.0.0
-      APP_PORT: "8080"
-      APP_LEVEL: "${APP_LEVEL:-development}"
-      CLIENT_URL: "${CLIENT_URL:-http://localhost:3000}"
-      COOKIE_DOMAIN: "${COOKIE_DOMAIN:-}"
-      MONGO_URI: "mongodb://${MONGO_USER:-taskly}:${MONGO_PASSWORD:?MONGO_PASSWORD is required}@taskly-mongo:27017/?authSource=admin"
-      MONGO_DB: "${MONGO_DB:-taskly}"
-      MONGO_TIMEOUT: "20000"
-      AUTH_SECRET: "${AUTH_SECRET:?AUTH_SECRET is required}"
-      LOG_LEVEL: "${LOG_LEVEL:-info}"
-      LOG_TO_FILE: "false"
+      APP_LEVEL: ${APP_LEVEL:-development}
+      DATABASE_URL: postgres://${DB_USER:-taskly}:${DB_PASSWORD}@taskly-postgres:5432/${DB_NAME:-taskly}
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET is required, run make docker/env}
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:3000}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
       - "${PORT:-8080}:8080"
     volumes:
       - taskly-avatars:/app/public/images/users
-    read_only: true
-    tmpfs:
-      - /tmp
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/"]
-      interval: 30s
-      timeout: 3s
-      start_period: 10s
-      retries: 3
-    networks:
-      - taskly
-
-networks:
-  taskly:
+    depends_on:
+      taskly-postgres:
+        condition: service_healthy
 
 volumes:
-  taskly-mongo-data:
+  taskly-postgres-data:
   taskly-avatars:

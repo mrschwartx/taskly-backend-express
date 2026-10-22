@@ -3,13 +3,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import { createImageForm } from '../../support/http-client.js';
-import { startTestMongo } from '../../support/mongo.js';
+import { startTestDatabase } from '../../support/postgres.js';
 import { registerUser, startTestApp } from '../../support/test-app.js';
 
-const MISSING_ID = 'eeeeeeeeeeeeeeeeeeeeeeee';
+const MISSING_ID = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
 
 describe('auth and users over HTTP', () => {
-  let mongo;
+  let database;
   let app;
 
   const avatarFiles = () =>
@@ -18,13 +18,13 @@ describe('auth and users over HTTP', () => {
       .filter((file) => file.startsWith('avatar-'));
 
   before(async () => {
-    mongo = await startTestMongo();
-    app = await startTestApp({ mongoUri: mongo.uri });
+    database = await startTestDatabase();
+    app = await startTestApp({ databaseUrl: database.url });
   });
 
   after(async () => {
     await app.stop();
-    await mongo.stop();
+    await database.stop();
   });
 
   describe('service basics', () => {
@@ -83,7 +83,10 @@ describe('auth and users over HTTP', () => {
       assert.equal(response.body.username, credentials.username);
       assert.equal(response.body.email, credentials.email);
       assert.equal(response.body.avatar, '/images/users/default-avatar.jpg');
-      assert.match(response.body._id, /^[0-9a-f]{24}$/);
+      assert.match(
+        response.body._id,
+        /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/
+      );
       assert.equal('password' in response.body, false);
       assert.equal(client.hasCookie('taskly_token'), true);
     });

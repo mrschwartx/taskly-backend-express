@@ -1,5 +1,8 @@
 import { ValidationError } from '../../../../shared/domain/errors.js';
 
+const MIN_YEAR = 1;
+const MAX_YEAR = 9999;
+
 export class DueDate {
   #value;
 
@@ -12,11 +15,16 @@ export class DueDate {
     if (typeof raw !== 'string' || raw.trim() === '') {
       throw new ValidationError('Task due date is required');
     }
-    const value = raw.trim();
-    if (Number.isNaN(Date.parse(value))) {
+    const timestamp = Date.parse(raw.trim());
+    if (Number.isNaN(timestamp)) {
       throw new ValidationError('Task due date is invalid');
     }
-    return new DueDate(value);
+    const date = new Date(timestamp);
+    const year = date.getUTCFullYear();
+    if (year < MIN_YEAR || year > MAX_YEAR) {
+      throw new ValidationError('Task due date is invalid');
+    }
+    return new DueDate(date.toISOString());
   }
 
   static restore(value) {
