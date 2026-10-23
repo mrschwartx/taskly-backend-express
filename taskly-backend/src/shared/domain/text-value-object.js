@@ -5,6 +5,7 @@ export const defineTextValueObject = ({
   minLength = 1,
   maxLength,
   defaultValue,
+  allowedValues,
 }) =>
   class TextValueObject {
     #value;
@@ -23,6 +24,11 @@ export const defineTextValueObject = ({
       if (value.length < minLength || value.length > maxLength) {
         throw new ValidationError(
           `${label} must be between ${minLength} and ${maxLength} characters`
+        );
+      }
+      if (allowedValues && !allowedValues.includes(value)) {
+        throw new ValidationError(
+          `${label} must be one of: ${allowedValues.join(', ')}`
         );
       }
       return new TextValueObject(value);

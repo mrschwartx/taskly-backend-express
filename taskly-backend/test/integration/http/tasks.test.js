@@ -58,8 +58,8 @@ describe('tasks over HTTP', () => {
       );
       assert.equal(response.body.owner, user._id);
       assert.equal(response.body.name, 'Read Atomic Habits');
-      assert.equal(response.body.priority, 'not urgent');
-      assert.equal(response.body.status, 'open');
+      assert.equal(response.body.priority, 'low');
+      assert.equal(response.body.status, 'todo');
       assert.equal(response.body.due, '2026-12-08T10:00:00.000Z');
       assert.equal(response.body.createdAt, response.body.updatedAt);
     });
@@ -74,8 +74,8 @@ describe('tasks over HTTP', () => {
       });
 
       assert.equal(response.status, 200);
-      assert.equal(status, 'open');
-      assert.equal(response.body.status, 'open');
+      assert.equal(status, 'todo');
+      assert.equal(response.body.status, 'todo');
       assert.equal(response.body.owner, user._id);
     });
 
@@ -164,7 +164,7 @@ describe('tasks over HTTP', () => {
         json: taskPayload({ name: 'a-task', status: 'done' }),
       });
       await client.post('/api/v1/tasks/create', {
-        json: taskPayload({ name: 'c-task', status: 'open' }),
+        json: taskPayload({ name: 'c-task', status: 'todo' }),
       });
 
       const response = await client.get(
@@ -222,15 +222,15 @@ describe('tasks over HTTP', () => {
       const response = await client.patch(`/api/v1/tasks/${created.body._id}`, {
         json: {
           name: 'Read Atomic Habits - Updated',
-          priority: 'urgent',
-          status: 'in-progress',
+          priority: 'high',
+          status: 'in_progress',
           due: '2026-12-15T10:00:00Z',
         },
       });
 
       assert.equal(response.status, 200);
       assert.equal(response.body.name, 'Read Atomic Habits - Updated');
-      assert.equal(response.body.status, 'in-progress');
+      assert.equal(response.body.status, 'in_progress');
       assert.equal(response.body.owner, created.body.owner);
       assert.equal(response.body.createdAt, created.body.createdAt);
       assert.ok(response.body.updatedAt >= created.body.updatedAt);

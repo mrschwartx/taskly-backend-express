@@ -25,9 +25,9 @@ import { InMemoryTaskRepository } from '../../../support/fakes/in-memory-task-re
 const validInput = {
   name: 'Read Atomic Habits',
   description: 'Finish reading Atomic Habits by James Clear',
-  priority: 'not urgent',
+  priority: 'low',
   due: '2026-12-08T10:00:00Z',
-  status: 'open',
+  status: 'todo',
 };
 
 describe('task use cases', () => {
@@ -48,7 +48,7 @@ describe('task use cases', () => {
       assert.match(task._id, /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/);
       assert.equal(task.owner, USER_ID);
       assert.equal(task.name, 'Read Atomic Habits');
-      assert.equal(task.status, 'open');
+      assert.equal(task.status, 'todo');
       assert.equal(taskRepository.snapshots.size, 2);
     });
 
@@ -59,7 +59,7 @@ describe('task use cases', () => {
         input: { name, priority, due },
       });
       assert.equal(task.description, '');
-      assert.equal(task.status, 'open');
+      assert.equal(task.status, 'todo');
     });
 
     it('ignores client supplied owner and ids', async () => {
@@ -215,12 +215,12 @@ describe('task use cases', () => {
     it('updates the provided fields', async () => {
       const task = await update({
         name: 'Updated',
-        priority: 'urgent',
-        status: 'in-progress',
+        priority: 'high',
+        status: 'in_progress',
       });
       assert.equal(task.name, 'Updated');
-      assert.equal(task.priority, 'urgent');
-      assert.equal(task.status, 'in-progress');
+      assert.equal(task.priority, 'high');
+      assert.equal(task.status, 'in_progress');
       assert.equal(task.due, '2026-12-08T10:00:00.000Z');
       assert.equal(taskRepository.snapshots.get(TASK_ID).name, 'Updated');
     });

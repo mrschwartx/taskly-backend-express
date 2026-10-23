@@ -7,7 +7,7 @@ import { UserRepository } from '../domain/user-repository.js';
 const DUPLICATE_MESSAGE = 'Email or Username is already registered.';
 
 const COLUMNS =
-  'id, username, email, password_hash, avatar, created_at, updated_at';
+  'id, username, email, password_hash, avatar_file, created_at, updated_at';
 
 const escapeLikePattern = (value) => value.replace(/[\\%_]/g, '\\$&');
 
@@ -17,7 +17,7 @@ const toEntity = (row) =>
     username: row.username,
     email: row.email,
     passwordHash: row.password_hash,
-    avatar: row.avatar,
+    avatar: row.avatar_file,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   });
@@ -65,7 +65,7 @@ export class PostgresUserRepository extends UserRepository {
             SET username = $2,
                 email = $3,
                 password_hash = $4,
-                avatar = $5,
+                avatar_file = $5,
                 updated_at = $6
           WHERE id = $1`,
         [
@@ -96,7 +96,7 @@ export class PostgresUserRepository extends UserRepository {
 
   async findByEmail(email) {
     const { rows } = await this.#pool.query(
-      `SELECT ${COLUMNS} FROM users WHERE email = $1`,
+      `SELECT ${COLUMNS} FROM users WHERE lower(email) = lower($1)`,
       [email]
     );
     return rows[0] ? toEntity(rows[0]) : null;
@@ -107,11 +107,11 @@ export class PostgresUserRepository extends UserRepository {
     const conditions = [];
     if (email !== undefined) {
       values.push(email);
-      conditions.push(`email = $${values.length}`);
+      conditions.push(`lower(email) = lower($${values.length})`);
     }
     if (username !== undefined) {
       values.push(username);
-      conditions.push(`username = $${values.length}`);
+      conditions.push(`lower(username) = lower($${values.length})`);
     }
     if (conditions.length === 0) {
       return false;
@@ -142,7 +142,7 @@ export class PostgresUserRepository extends UserRepository {
     const where =
       conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     const { rows } = await this.#pool.query(
-      `SELECT ${COLUMNS} FROM users ${where} ORDER BY seq ASC`,
+      `SELECT ${COLUMNS} FROM users ${where} ORDER BY created_at ASC, id ASC`,
       values
     );
     return rows.map(toEntity);

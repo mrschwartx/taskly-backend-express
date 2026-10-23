@@ -47,8 +47,8 @@ export const registerUser = async (client, overrides = {}) => {
 export const taskPayload = (overrides = {}) => ({
   name: 'Read Atomic Habits',
   description: 'Finish reading Atomic Habits by James Clear',
-  priority: 'not urgent',
+  priority: 'low',
   due: '2026-12-08T10:00:00Z',
-  status: 'open',
+  status: 'todo',
   ...overrides,
 });

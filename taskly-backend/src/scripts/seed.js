@@ -17,9 +17,9 @@ const seeds = [
       {
         name: 'Read Atomic Habits',
         description: 'Finish reading Atomic Habits by James Clear',
-        priority: 'not urgent',
+        priority: 'low',
         due: now(),
-        status: 'open',
+        status: 'todo',
       },
     ],
   },
@@ -34,9 +34,9 @@ const seeds = [
         name: 'Learn MERN Stack',
         description:
           'Learn the MERN stack and build a full-stack application with it',
-        priority: 'urgent',
+        priority: 'high',
         due: now(),
-        status: 'open',
+        status: 'todo',
       },
     ],
   },

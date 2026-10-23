@@ -15,12 +15,15 @@ describe('PostgresUserRepository', () => {
   let pool;
   let repository;
 
+  let clock = 0;
+
   const newUser = (username, email) =>
     User.register({
       id: repository.nextId(),
       username: Username.create(username),
       email: Email.create(email),
       passwordHash: 'hash',
+      now: new Date(Date.UTC(2026, 0, 1, 0, 0, (clock += 1))),
     });
 
   before(async () => {
@@ -36,7 +39,7 @@ describe('PostgresUserRepository', () => {
   });
 
   beforeEach(async () => {
-    await pool.query('TRUNCATE users');
+    await pool.query('TRUNCATE users CASCADE');
   });
 
   after(async () => {
@@ -63,7 +66,7 @@ describe('PostgresUserRepository', () => {
     assert.equal(rows[0].username, 'johndoe123');
     assert.equal(rows[0].email, 'johndoe123@mail.com');
     assert.equal(rows[0].password_hash, 'hash');
-    assert.equal(rows[0].avatar, '/images/users/default-avatar.jpg');
+    assert.equal(rows[0].avatar_file, '/images/users/default-avatar.jpg');
     assert.ok(rows[0].created_at instanceof Date);
     assert.ok(rows[0].updated_at instanceof Date);
   });
@@ -170,7 +173,7 @@ describe('PostgresUserRepository', () => {
     assert.equal(await repository.existsByEmailOrUsername({}), false);
   });
 
-  it('searches case-insensitively by substring in insertion order', async () => {
+  it('searches case-insensitively by substring in creation order', async () => {
     await repository.add(newUser('johndoe123', 'johndoe123@mail.com'));
     await repository.add(newUser('jane78', 'jane@mail.com'));
 
@@ -189,6 +192,38 @@ describe('PostgresUserRepository', () => {
     assert.deepEqual(
       all.map((user) => user.username.value),
       ['johndoe123', 'jane78']
+    );
+  });
+
+  it('finds users by email regardless of letter case', async () => {
+    const user = newUser('johndoe123', 'johndoe123@mail.com');
+    await repository.add(user);
+
+    const found = await repository.findByEmail('JohnDoe123@Mail.com');
+
+    assert.equal(found?.id, user.id);
+  });
+
+  it('treats email and username as equal regardless of letter case', async () => {
+    await repository.add(newUser('johndoe123', 'johndoe123@mail.com'));
+
+    await assert.rejects(
+      () => repository.add(newUser('JohnDoe123', 'other@mail.com')),
+      AlreadyExistsError
+    );
+    await assert.rejects(
+      () => repository.add(newUser('other', 'JohnDoe123@Mail.com')),
+      AlreadyExistsError
+    );
+    assert.equal(
+      await repository.existsByEmailOrUsername({
+        email: 'JOHNDOE123@MAIL.COM',
+      }),
+      true
+    );
+    assert.equal(
+      await repository.existsByEmailOrUsername({ username: 'JOHNDOE123' }),
+      true
     );
   });
 

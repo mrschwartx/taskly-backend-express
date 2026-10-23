@@ -127,12 +127,14 @@ Schema changes live in `src/shared/infrastructure/postgres/migrations` as number
 
 | Table   | Notes                                                                                   |
 | ------- | --------------------------------------------------------------------------------------- |
-| `users` | `id` UUID, unique `email` and `username`, `password_hash`, `avatar`, timestamps         |
-| `tasks` | `id` UUID, `owner_id` UUID, `due` timestamptz, indexed on `(owner_id, status, seq)`     |
+| `users` | `id` UUID, case-insensitive unique `email` and `username`, `password_hash`, `avatar_file`, timestamps |
+| `tasks` | `id` UUID, `owner_id` UUID (foreign key to `users`), `due` timestamptz, `status` and `priority` limited by `CHECK`, indexed on `(owner_id, status)` |
 
 - Identifiers are UUIDs. API responses still expose them as `_id` and `owner`, so existing clients keep working.
-- `seq` is an internal identity column that keeps listings in insertion order.
-- `tasks.owner_id` has no foreign key because modules stay decoupled. The `user.deleted` event removes a user's tasks.
+- Listings are ordered by `created_at` and `id`, so ties on the creation time still give a stable order.
+- `tasks.owner_id` references `users(id)` with `ON DELETE CASCADE`. The `user.deleted` event still removes a user's tasks.
+- `status` accepts `todo`, `in_progress` and `done` (default `todo`). `priority` accepts `low`, `medium` and `high`.
+- `email` and `username` are matched without regard to letter case.
 - `due` is stored as a timestamp with time zone and returned as an ISO 8601 UTC string, for example `2026-12-08T10:00:00.000Z`.
 
 ## API

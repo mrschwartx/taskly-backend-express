@@ -51,12 +51,12 @@ describe('e2e: a full user journey against the real server process', () => {
     assert.equal(secondPage.body.tasks.length, 1);
 
     const updated = await client.patch(`/api/v1/tasks/${createdIds[0]}`, {
-      json: { status: 'in-progress', priority: 'urgent' },
+      json: { status: 'in_progress', priority: 'high' },
     });
-    assert.equal(updated.body.status, 'in-progress');
+    assert.equal(updated.body.status, 'in_progress');
 
     const inProgress = await client.get(
-      `/api/v1/tasks/user/${userId}?status=in-progress`
+      `/api/v1/tasks/user/${userId}?status=in_progress`
     );
     assert.equal(inProgress.body.taskCount, 1);
 

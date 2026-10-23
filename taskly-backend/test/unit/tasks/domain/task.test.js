@@ -21,7 +21,7 @@ describe('Task', () => {
     assert.equal(task.id, TASK_ID);
     assert.equal(task.ownerId, USER_ID);
     assert.equal(task.name.value, 'Read Atomic Habits');
-    assert.equal(task.status.value, 'open');
+    assert.equal(task.status.value, 'todo');
     assert.equal(task.createdAt, '2026-01-01T00:00:00.000Z');
     assert.equal(task.updatedAt, task.createdAt);
   });
@@ -38,14 +38,14 @@ describe('Task', () => {
     task.update(
       {
         name: TaskName.create('Renamed'),
-        status: TaskStatus.create('in-progress'),
+        status: TaskStatus.create('in_progress'),
       },
       new Date('2026-02-02T00:00:00.000Z')
     );
 
     assert.equal(task.name.value, 'Renamed');
-    assert.equal(task.status.value, 'in-progress');
-    assert.equal(task.priority.value, 'not urgent');
+    assert.equal(task.status.value, 'in_progress');
+    assert.equal(task.priority.value, 'low');
     assert.equal(task.updatedAt, '2026-02-02T00:00:00.000Z');
     assert.equal(task.createdAt, '2026-01-01T00:00:00.000Z');
   });
@@ -84,16 +84,20 @@ describe('task value objects', () => {
     assert.throws(() => TaskDescription.create(42), ValidationError);
   });
 
-  it('TaskPriority is required', () => {
-    assert.equal(TaskPriority.create('urgent').value, 'urgent');
+  it('TaskPriority is required and limited to known values', () => {
+    assert.equal(TaskPriority.create('high').value, 'high');
     assert.throws(() => TaskPriority.create(undefined), ValidationError);
     assert.throws(() => TaskPriority.create(''), ValidationError);
+    assert.throws(() => TaskPriority.create('urgent'), ValidationError);
+    assert.throws(() => TaskPriority.create('HIGH'), ValidationError);
   });
 
-  it('TaskStatus defaults to open', () => {
-    assert.equal(TaskStatus.create(undefined).value, 'open');
-    assert.equal(TaskStatus.create('in-progress').value, 'in-progress');
+  it('TaskStatus defaults to todo', () => {
+    assert.equal(TaskStatus.create(undefined).value, 'todo');
+    assert.equal(TaskStatus.create('in_progress').value, 'in_progress');
     assert.throws(() => TaskStatus.create(''), ValidationError);
+    assert.throws(() => TaskStatus.create('open'), ValidationError);
+    assert.throws(() => TaskStatus.create('in-progress'), ValidationError);
   });
 
   it('DueDate accepts parseable dates only', () => {
@@ -113,7 +117,7 @@ describe('task value objects', () => {
   it('compares by value within the same type', () => {
     assert.ok(TaskName.create('a').equals(TaskName.create('a')));
     assert.ok(!TaskName.create('a').equals(TaskName.create('b')));
-    assert.ok(!TaskName.create('a').equals(TaskPriority.create('a')));
+    assert.ok(!TaskName.create('low').equals(TaskPriority.create('low')));
     assert.ok(
       DueDate.create('2026-01-01').equals(DueDate.create('2026-01-01'))
     );

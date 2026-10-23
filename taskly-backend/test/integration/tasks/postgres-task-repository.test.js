@@ -19,8 +19,15 @@ describe('PostgresTaskRepository', () => {
   const ownerA = generateEntityId();
   const ownerB = generateEntityId();
 
+  let clock = 0;
+
   const newTask = (overrides = {}) =>
-    buildTask({ id: repository.nextId(), ownerId: ownerA, ...overrides });
+    buildTask({
+      id: repository.nextId(),
+      ownerId: ownerA,
+      now: new Date(Date.UTC(2026, 0, 1, 0, 0, (clock += 1))),
+      ...overrides,
+    });
 
   before(async () => {
     database = await startTestDatabase();
@@ -35,7 +42,13 @@ describe('PostgresTaskRepository', () => {
   });
 
   beforeEach(async () => {
-    await pool.query('TRUNCATE tasks');
+    await pool.query('TRUNCATE users CASCADE');
+    await pool.query(
+      `INSERT INTO users (id, username, email, password_hash)
+       VALUES ($1, 'owner_a', 'owner_a@mail.com', 'hash'),
+              ($2, 'owner_b', 'owner_b@mail.com', 'hash')`,
+      [ownerA, ownerB]
+    );
   });
 
   after(async () => {
@@ -61,7 +74,7 @@ describe('PostgresTaskRepository', () => {
 
     assert.equal(rows[0].owner_id, ownerA);
     assert.equal(rows[0].name, 'Read Atomic Habits');
-    assert.equal(rows[0].status, 'open');
+    assert.equal(rows[0].status, 'todo');
     assert.ok(rows[0].due instanceof Date);
     assert.ok(rows[0].created_at instanceof Date);
   });
@@ -103,7 +116,7 @@ describe('PostgresTaskRepository', () => {
     assert.ok(result.tasks.every((task) => task.ownerId === ownerA));
   });
 
-  it('returns tasks in insertion order by default', async () => {
+  it('returns tasks in creation order by default', async () => {
     const created = [];
     for (let index = 0; index < 4; index += 1) {
       const task = newTask();

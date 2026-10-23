@@ -28,9 +28,9 @@ export const buildTask = (overrides = {}) =>
     ownerId: USER_ID,
     name: TaskName.create('Read Atomic Habits'),
     description: TaskDescription.create('Finish the book'),
-    priority: TaskPriority.create('not urgent'),
+    priority: TaskPriority.create('low'),
     due: DueDate.create('2026-12-08T10:00:00Z'),
-    status: TaskStatus.create('open'),
+    status: TaskStatus.create('todo'),
     now: new Date('2026-01-01T00:00:00.000Z'),
     ...overrides,
   });

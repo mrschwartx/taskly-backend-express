@@ -32,7 +32,9 @@ const resolveOrderBy = (orderBy) => {
   const column = Object.hasOwn(SORT_COLUMNS, orderBy)
     ? SORT_COLUMNS[orderBy]
     : undefined;
-  return column ? `${column} ASC, seq ASC` : 'seq ASC';
+  return column
+    ? `${column} ASC, created_at ASC, id ASC`
+    : 'created_at ASC, id ASC';
 };
 
 export class PostgresTaskRepository extends TaskRepository {
